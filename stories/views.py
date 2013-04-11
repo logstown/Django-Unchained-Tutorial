@@ -1,7 +1,7 @@
 import datetime
 
-from django.shortcuts import render
-from django.http import HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.timezone import utc
 from django.contrib.auth.decorators import login_required
 
@@ -13,11 +13,8 @@ def score(story, gravity=1.8, timebase=120):
 	now = datetime.datetime.utcnow().replace(tzinfo=utc)
 	age = int((now - story.created_at).total_seconds())/60
 
-	if age != 0:
-		return points/(age*timebase)**1.8
-	else:
-		return 0
-
+	return points/(age+timebase)**1.8
+	
 def top_stories(top=180, consider=1000):
 	latest_stories = Story.objects.all().order_by('-created_at')[:consider]
 	ranked_stores = sorted([(score(story), story) for story in latest_stories], reverse=True)
@@ -43,3 +40,10 @@ def story(request):
 		form = StoryForm()
 
 	return render(request, 'stories/story.html', {'form': form})
+
+@login_required
+def vote(request):
+	story = get_object_or_404(Story, pk=request.POST.get('story'))
+	story.points += 1
+	story.save()
+	return HttpResponse()
