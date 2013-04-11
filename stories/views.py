@@ -22,9 +22,14 @@ def top_stories(top=180, consider=1000):
 
 def index(request):
 	stories = top_stories(top=30)
+	if request.user.is_authenticated():
+		liked_stories = request.user.liked_stories.filter(id__in=[story.id for story in stories])
+	else:
+		liked_stories = []
 	return render(request, 'stories/index.html', {
 		'stories': stories,
-		'user': request.user
+		'user': request.user,
+		'liked_stories': liked_stories
 	})
 
 @login_required
@@ -46,4 +51,7 @@ def vote(request):
 	story = get_object_or_404(Story, pk=request.POST.get('story'))
 	story.points += 1
 	story.save()
+	user = request.user
+	user.liked_stories.add(story)
+	user.save()
 	return HttpResponse()
